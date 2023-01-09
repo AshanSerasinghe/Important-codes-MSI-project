@@ -4,13 +4,15 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib
+
 
 def MakeMainMatrix():
     pwd_main = os.getcwd()
     folders = glob(pwd_main + "/*/", recursive = True)
     numOfImgs = 14
-    numberOfSamples = 24
-    numOfLevels = 4
+    numberOfSamples = 9
+    numOfLevels = 9
 
     mainMatrix3D = np.ones((numOfLevels,numberOfSamples,14))
     mainMatCount = 0
@@ -39,22 +41,21 @@ def MakeMainMatrix():
 
 def plotSignature():
     mainMatrix = MakeMainMatrix()
-    numAflLevel = 4
-    colorArray = ['green' , 'black', 'red','blue']
+    numAflLevel = 9
+    # colorArray = ['green' , 'black', 'red','blue' , (0,0.4,0.8), (0.2,0.5,0.2), (0.1,0.4,0.6), (0.15,0.45,0.7), (0.45,0.65,0.15)]
+    colorArray = matplotlib.cm.tab20(range(20))
     for i in range(0,numAflLevel):
         imgMatrix = mainMatrix[i,:,:]
         numRows = imgMatrix.shape[0]
         for j in range(0,numRows):
             plt.plot(list(range(0,14)), imgMatrix[j], color=colorArray[i], linestyle='solid', linewidth = 1, marker='o')
     
-    green_patch = mpatches.Patch(color='green', label='Day 0')
-    black_patch = mpatches.Patch(color='black', label='Day 3')
-    red_patch = mpatches.Patch(color='red', label='day 5')
-    blue_patch = mpatches.Patch(color='blue', label='day 6')
-  
+    patchArray = []
+    levelsArray = ['0','5','10','15','20','25','30','35','40']
+    for c,level in zip(colorArray,levelsArray):
+        patchArray.append(mpatches.Patch(color=c, label=level ))
 
-
-    plt.legend(handles = [green_patch,black_patch,red_patch, blue_patch])
+    plt.legend(handles = patchArray)
     plt.grid()
     plt.show()        
 
