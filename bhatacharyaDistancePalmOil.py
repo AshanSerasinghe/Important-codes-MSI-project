@@ -83,7 +83,7 @@ def plotAllHistograms():
         for j in range(numOfImgs):
             superImg = mainMatrix3D[0,i*pixelSize:(i+2)*pixelSize-pixelSize , j*pixelSize:(j+2)*pixelSize-pixelSize]
             # plotSingleHistogram(superImg,i,j)
-            rowData = superImg.reshape((1,10*10))
+            rowData = superImg.reshape((10*10))
             # fig, axs = plt.subplots(1, 1,figsize =(10, 7), tight_layout = True)
             
             ax[i][j].hist(rowData, bins = 20)
