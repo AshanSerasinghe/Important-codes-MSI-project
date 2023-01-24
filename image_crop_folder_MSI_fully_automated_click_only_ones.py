@@ -24,7 +24,7 @@ def click_event(event, x, y, flags, params):
         return [x,y]
 
 
-pwd_main = 'F:\Data Sets\Turmeric 2018\Analysis\PER40' #os.getcwd()
+pwd_main = "F:\Data Sets\Rubber\Rubber\R" #'F:\Data Sets\Turmeric 2018\Analysis\PER40' #os.getcwd()
 folders = glob(pwd_main + "/*/", recursive = True)
 
 main_folder_name = os.path.basename(pwd_main)

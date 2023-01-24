@@ -20,7 +20,7 @@ def click_event(event, x, y, flags, params):
         return [x,y]
 
 
-pwd_main = os.getcwd()
+pwd_main = "F:\Data Sets\Rubber\Rubber\R"#os.getcwd()
 folders = glob(pwd_main + "/*/", recursive = True)
 
 main_folder_name = os.path.basename(pwd_main)
@@ -50,8 +50,8 @@ for pwd in folders:
 
     file_num = 1
     file_prefix = main_folder_name #input("Input file prefix : ")#"distill"
-    width = 40 #300
-    height = 40 #300
+    width = 100 #300
+    height = 100 #300
 
     start = 1 #int(input("Enter start image number : " ))
 
