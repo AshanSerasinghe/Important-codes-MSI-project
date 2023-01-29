@@ -116,6 +116,7 @@ def makeHistograms():
                 if d<= binSize:
                     binArray[0] = binArray[0]+1
                 elif d<= binSize*2:
+                    binArray[0] = binArray[0]+1
 
 
 
@@ -128,6 +129,7 @@ def movingAverageSuperImg():
     ''''
     sliding window
     '''
+    print("not yet implimented")
     
 
 
