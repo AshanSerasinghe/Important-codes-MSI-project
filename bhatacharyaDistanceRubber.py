@@ -4,6 +4,8 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 
 
@@ -112,7 +114,6 @@ def superPixSlidingWindow(img ,overlap):
     s-stride 
 
     '''
-    # img = cv2.imread(imgname,cv2.IMREAD_GRAYSCALE)
 
     superimg = []
     for i in range(0,100,10-overlap):
@@ -133,6 +134,49 @@ def superPixSlidingWindow(img ,overlap):
             superimg = superrow
     
     return superimg
+
+
+
+def convTo2DforPCA(mat3d):
+    '''developer: Darsha '''
+
+    band_no = 14
+    samples_no = 9
+    levels_no = mat3d.shape[0]
+    width = mat3d.shape[2]
+    blocksize = int(width/band_no)
+    
+    level = np.ones((1,band_no))
+    for k in range(levels_no):
+        for i in range(samples_no):
+            sample = np.ones((int(blocksize**2),1))
+            for j in range(band_no):
+                imageblck = mat3d[k,i*blocksize:(i+1)*blocksize,j*blocksize:(j+1)*blocksize]
+                imagecol = imageblck.reshape((blocksize**2,1))
+                sample = np.hstack((sample,imagecol))
+            level = np.vstack((level,sample[:,1:]))
+    
+    mat2d = level[1:,:]
+    
+    return mat2d
+
+
+def PCA_apply(mat2d,comps):
+    '''developer: Darsha '''
+
+    #mat2d = mat2d[:,1:] #remove blackcurrent
+
+    sc = StandardScaler()
+    #data_scaled = sc.fit_transform(mat2d)
+    data_scaled = mat2d
+
+    pca = PCA(n_components = comps)
+    data_reduced = pca.fit_transform(data_scaled)
+
+    return data_reduced
+
+
+
 
 
 
@@ -202,6 +246,136 @@ def movingAverageSuperImg():
     
 
 
+def reshapeHistogramMat():
+    numberOfBins = 10
+    numOfLevels = 6
+    numOfImgs = 14
+    numberOfSamples = 9
+
+    reshapedMat = np.zeros((numOfLevels,  numberOfBins*numberOfSamples, numOfImgs))
+
+    histMat = makeHistograms()
+    
+    for level in range(numOfLevels):
+        for i in range(numberOfSamples):
+            for j in range(numOfImgs):
+                reshapedMat[level, i*numberOfBins:(i+1)*numberOfBins, j] = histMat[level, i , j*numberOfBins:(j+1)*numberOfBins]
+                
+
+    return reshapedMat
+
+
+
+
+
+def calculateBhattacharyaDistance(refData , compData):
+    refMean = np.mean(refData , axis=0)
+    compMean = np.mean(compData , axis=0)
+    meanDiff = refMean - compMean
+
+    refCov = np.cov(refData.T)
+    compCov = np.cov(compData.T)
+
+    Sigma = (refCov + compCov)/2
+    SigmaInv = np.linalg.inv(Sigma)
+
+    SigmaDet = np.linalg.det(Sigma)
+    refCovDet = np.linalg.det(refCov)
+    compCovDet = np.linalg.det(compCov)
+
+    BhattacharyaDistance = (1/8)*(meanDiff.T).dot(SigmaInv).dot(meanDiff) + (1/2)*(np.log(SigmaDet/np.sqrt(refCovDet*compCovDet)))
+
+    return BhattacharyaDistance
+
+
+def mat2DforPCA_To_3DLevels():
+
+    numOfImgs = 14
+    numberOfSamples = 9
+    numOfLevels = 6
+    pixelSize = 10
+    stride = 5 #(n+2p-f)/s +1---> 100-10/5+1=19
+    imgSize = 100
+    
+    convolutesDim = int((imgSize-pixelSize)/stride + 1)
+
+    mat3D = makeMain3DMat()
+    reshapedMat = convTo2DforPCA(mat3D)
+    
+    mat3DLevels = np.zeros((numOfLevels, numberOfSamples*convolutesDim*convolutesDim, numOfImgs))
+    
+
+    for i in range(numOfLevels):
+        mat3DLevels[i,:,:] = reshapedMat[i*(convolutesDim**2)*numberOfSamples:(i+1)*(convolutesDim**2)*numberOfSamples ,:]
+    
+    return mat3DLevels 
+        
+
+def calculateDistanceForAll():
+
+    reshapedMat = mat2DforPCA_To_3DLevels()
+   
+    # reshapedMat = reshapedMat/361
+    reference = reshapedMat[5,:,:]
+    numOfLevels = 6
+    numberOfSamples = 9
+    pixelSize = 10
+    stride = 5 #(n+2p-f)/s +1---> 100-10/5+1=19
+    imgSize = 100
+    convolutesDim = int((imgSize-pixelSize)/stride + 1)
+    sampleSize = convolutesDim**2 # number of bins
+
+    distanceMat = np.zeros((numOfLevels, numberOfSamples ,1))
+    for level in range(numOfLevels):
+        for i in range(numberOfSamples):
+            distanceMat[level,i,0] = calculateBhattacharyaDistance(reference , reshapedMat[level, i*sampleSize:(i+1)*sampleSize, :])
+
+    return distanceMat
+
+
+
+
+def plotDistance():
+    distanceMat = calculateDistanceForAll()
+    dryRubberContent = [0,0,0,
+                        8.858695652,8.972972973,8.855885589,
+                        18.02551303,18.46994536,17.71238201,
+                        30.39271485,31.45071982,31.27071823,
+                        44.46978335,47.14697406,44.55388181,
+                        54.84429066,53.27047731,51.72622653,
+                        ]
+    matShape = distanceMat.shape
+
+    plotingData2D = np.zeros((matShape[0]*matShape[1],2))
+    
+    # for dryRubber in dryRubberContent:
+    rubberContenIndex = 0
+    plotIndex = 0
+
+    for i in range(matShape[0]):
+        for j in range(matShape[1]):
+            plotingData2D[plotIndex,0] = distanceMat[i,j,0]
+            plotingData2D[plotIndex,1] = dryRubberContent[rubberContenIndex]
+            plotIndex+=1
+            if plotIndex%3 == 0:
+                rubberContenIndex+=1
+    
+    for i in plotingData2D[9:-1,0]:
+        print(i)
+    # print(plotingData2D[9:-1,1].T)   
+    
+
+    plt.scatter(plotingData2D[9:-1,1], plotingData2D[9:-1,0])
+    plt.grid()
+    plt.xlabel('Dry Rubber Content(W/W)')
+    plt.ylabel('Bhattacharya Distance')
+    plt.title('Dry Rubber Content Vs Bhattacharya Distance')
+    plt.show()
+
+
+    return plotingData2D
+
+
 
 # avgImg = np.zeros((10,1))
 # superImg = getSuperPixel(np.random.rand(100,100), 10)
@@ -209,6 +383,20 @@ def movingAverageSuperImg():
 # print(avgImg)
 # print(makeMain3DMat()[0,:,:])
 
-print(makeHistograms()[5,3,:])
-
+# print(makeHistograms()[5,3,:])
+# x = reshapeHistogramMat()
+# print(calculateBhattacharyaDistance(x[0,:,:] , x[1,:,:]))
 # plotAllHistograms()
+
+# x = calculateDistanceForAll()
+# print(x.shape)
+# print(x[0,:,:])
+
+
+# x,y = mat2DforPCA_To_3DLevels()
+
+# print(x[5,:,:])
+# print("...........................................")
+# print(y)
+
+x = plotDistance()
